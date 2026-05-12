@@ -1,7 +1,3 @@
-from torchmeta import datasets
-from torchmeta import modules
-from torchmeta import toy
-from torchmeta import transforms
-from torchmeta import utils
+from siren.torchmeta import modules
 
-from torchmeta.version import VERSION as __version__
+from siren.torchmeta.version import VERSION as __version__
