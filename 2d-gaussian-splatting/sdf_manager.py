@@ -1,5 +1,7 @@
 import torch
 import torch.nn.functional as F
+import sys
+sys.path.append('/content/CARD')
 from siren import modules
 
 
