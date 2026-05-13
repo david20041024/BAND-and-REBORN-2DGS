@@ -51,7 +51,7 @@ class SDFManager:
     # ---------------------------
     # curvature (simple mean curvature approx)
     # ---------------------------
-    def curvature(self, coords, chunk_size=50000)
+    def curvature(self, coords, chunk_size=50000):
         all_H = []
         
         with torch.enable_grad():
