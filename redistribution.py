@@ -16,7 +16,7 @@ from utils.loss_utils import l1_loss, ssim
 from gaussian_renderer import render, network_gui
 import sys
 from scene import Scene, GaussianModel
-from one-shot import GaussianModelProcessor
+from one_shot import GaussianModelProcessor
 from utils.general_utils import safe_state
 import uuid
 from tqdm import tqdm
@@ -33,14 +33,14 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree)
     gaussians.active_sh_degree = 3
-    process = GaussianModelProcessor(gaussians, xyz_file)
     scene = Scene(dataset, gaussians)
-    gaussians.card(self, scene.cameras_extent, process.count):
+    
     gaussians.training_setup(opt)
     if checkpoint:
         (model_params, first_iter) = torch.load(checkpoint, weights_only=False) # checkpoint
         gaussians.restore(model_params, opt)
-
+    process = GaussianModelProcessor(gaussians, xyz_file)
+    gaussians.card(scene.cameras_extent, process.count)
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 

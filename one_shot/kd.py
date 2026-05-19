@@ -11,13 +11,13 @@ class KD:
         self.group_normal_mean = []  
         self.sorted_groups = []
         self.alpha = alpha
-        self.counts = torch.zeros(len(self.groups), dtype=torch.int32, device=self.device)
         self.clone_count = torch.zeros(self.total_N, dtype=torch.int32, device=self.device)
         # 1. 拼接資料 (N, 7)
         data = torch.cat([xyz, normal], dim=1)  
         
         # 2. 建樹
         self.root = self._build(data, depth=0)
+        self.counts = torch.zeros(len(self.groups), dtype=torch.int32, device=self.device)
         
         # 3. 初始化計數陣列
         
@@ -105,7 +105,7 @@ class KD:
             # 5. 存入結果
             self.sorted_groups.append(sorted_points)
     
-     def _count_clone(self):
+    def _count_clone(self):
         
         for g_idx, sorted_points in enumerate(self.sorted_groups):
             B = sorted_points.size(0)  # 這組總共有多少個高斯點
