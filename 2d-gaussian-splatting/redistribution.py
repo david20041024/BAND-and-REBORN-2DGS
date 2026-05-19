@@ -22,7 +22,6 @@ from tqdm import tqdm
 from utils.image_utils import psnr, render_net_image
 from argparse import ArgumentParser, Namespace
 from arguments import ModelParams, PipelineParams, Optimization_for_redistribution_Params
-from sdf_manager import SDFManager
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
@@ -127,15 +126,16 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
                     # Curvature-aware redistribution
-                    xyz = gaussians.get_xyz
-                    H = sdf.curvature(xyz)
-                    H_abs = torch.abs(H).flatten()
+                    # xyz = gaussians.get_xyz
+                    # H = sdf.curvature(xyz)
+                    # H_abs = torch.abs(H).flatten()
 
-                    ranks = torch.argsort(torch.argsort(H_abs)).float()
-                    ranks /= (len(H_abs) - 1)
+                    # ranks = torch.argsort(torch.argsort(H_abs)).float()
+                    # ranks /= (len(H_abs) - 1)
 
-                    gaussians._curvature = ranks.unsqueeze(-1)
-                    gaussians.card(scene.cameras_extent)
+                    # gaussians._curvature = ranks.unsqueeze(-1)
+                    # gaussians.card(scene.cameras_extent)
+                    pass
                 
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity()
