@@ -16,6 +16,7 @@ from utils.loss_utils import l1_loss, ssim
 from gaussian_renderer import render, network_gui
 import sys
 from scene import Scene, GaussianModel
+from one-shot import GaussianModelProcessor
 from utils.general_utils import safe_state
 import uuid
 from tqdm import tqdm
@@ -28,13 +29,13 @@ try:
 except ImportError:
     TENSORBOARD_FOUND = False
 
-def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, sdf_path):
-    first_iter = 0
+def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, sdf_path, xyz_file):
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree)
     gaussians.active_sh_degree = 3
-    sdf = SDFManager(sdf_path)
+    process = GaussianModelProcessor(gaussians, xyz_file)
     scene = Scene(dataset, gaussians)
+    gaussians.card(self, scene.cameras_extent, process.count):
     gaussians.training_setup(opt)
     if checkpoint:
         (model_params, first_iter) = torch.load(checkpoint, weights_only=False) # checkpoint
@@ -123,19 +124,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if iteration < opt.densify_until_iter:
                 gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
-
-                if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
-                    # Curvature-aware redistribution
-                    # xyz = gaussians.get_xyz
-                    # H = sdf.curvature(xyz)
-                    # H_abs = torch.abs(H).flatten()
-
-                    # ranks = torch.argsort(torch.argsort(H_abs)).float()
-                    # ranks /= (len(H_abs) - 1)
-
-                    # gaussians._curvature = ranks.unsqueeze(-1)
-                    # gaussians.card(scene.cameras_extent)
-                    pass
                 
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity()
@@ -264,12 +252,13 @@ if __name__ == "__main__":
     parser.add_argument('--ip', type=str, default="127.0.0.1")
     parser.add_argument('--port', type=int, default=6009)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
-    parser.add_argument("--test_iterations", nargs="+", type=int, default=[7_000, 30_000])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[7_000, 30_000])
+    parser.add_argument("--test_iterations", nargs="+", type=int, default=[2_500, 5_000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[2_500, 5_000])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)
     parser.add_argument("--sdf_path", type=str, required=True)
+    parser.add_argument("--xyz_file", type=str, required=True, help="Path to xyz file for point cloud initialization")
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
     
@@ -281,7 +270,7 @@ if __name__ == "__main__":
     # Start GUI server, configure and run training
     network_gui.init(args.ip, args.port)
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.sdf_path)
+    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.sdf_path, args.xyz_file)
 
     # All done
     print("\nTraining complete.")
