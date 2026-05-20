@@ -453,12 +453,8 @@ class GaussianModel:
         # filter
         selected_pts_mask = counts >= 2
 
-        selected_pts_mask = torch.logical_and(
-            selected_pts_mask,
-            torch.max(self.get_scaling, dim=1).values <= self.percent_dense * scene_extent
-        )
-
         selected_indices = selected_pts_mask.nonzero(as_tuple=False).squeeze(-1)
+
 
         if selected_indices.numel() == 0:
             return
@@ -528,7 +524,8 @@ class GaussianModel:
             counts = torch.cat([counts, padding])  # ← cat 在這裡
         elif counts.shape[0] > self._xyz.shape[0]:
             counts = counts[:self._xyz.shape[0]]
-            prune_mask = (counts == 0)
+        
+        prune_mask = (counts == 0)
 
         self.prune_points(prune_mask)
         torch.cuda.empty_cache()
