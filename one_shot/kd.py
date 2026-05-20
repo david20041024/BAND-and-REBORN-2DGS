@@ -12,6 +12,7 @@ class KD:
         self.sorted_groups = []
         self.alpha = alpha
         self.clone_count = torch.zeros(self.total_N, dtype=torch.int32, device=self.device)
+        self.center = torch.zeros((self.total_N, 3), dtype=torch.float32, device=self.device)
         # 1. 拼接資料 (N, 7)
         data = torch.cat([xyz, normal], dim=1)  
         
@@ -128,5 +129,6 @@ class KD:
             
             # 3. 精準填回全局
             self.clone_count[orig_idx] = local_clone
+            self.center[orig_idx] = self.group_xyz_mean[g_idx][:3]
 
         

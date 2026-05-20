@@ -439,105 +439,20 @@ class GaussianModel:
         new_curvature = self._curvature[selected_pts_mask]
 
         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, new_curvature)
-   
-    def densify_and_split_for_card(self, scene_extent, counts=None):
-        if counts is None:
-            # Fallback to curvature if counts aren't provided
-            curv = self._curvature.detach().squeeze()
-            curv[torch.isnan(curv)] = 0.0
-            selected_pts_mask = curv >= 0.8
-        else:
-            # Core modification: Select points where counts indicate a split/clone trigger (>= 2)
-            counts = counts.to(self._xyz.device).to(torch.int64)
-            # Ensure counts matches current xyz size before masking
-            if counts.numel() < self._xyz.shape[0]:
-                padded_counts = torch.zeros(self._xyz.shape[0], dtype=torch.int64, device=self._xyz.device)
-                padded_counts[:counts.numel()] = counts
-                counts = padded_counts
-            
-            selected_pts_mask = counts >= 2
 
-        # Filter out points that are already smaller than the percent_dense threshold
-        selected_pts_mask = torch.logical_and(
-            selected_pts_mask,
-            torch.max(self.get_scaling, dim=1).values > self.percent_dense * scene_extent
-        )
+    def densify_for_card(self, center, counts=None):
+        device = self._xyz.device
+        counts = counts.to(device).to(torch.int64)
 
-        old_n = self.get_xyz.shape[0]
-        selected_indices = selected_pts_mask.nonzero(as_tuple=False).squeeze(-1)
+        # pad counts
+        if counts.numel() < self._xyz.shape[0]:
+            padded_counts = torch.zeros(self._xyz.shape[0], dtype=torch.int64, device=device)
+            padded_counts[:counts.numel()] = counts
+            counts = padded_counts
 
-        if counts is None:
-            # Standard splitting logic (N=2)
-            N = 2
-            stds = self.get_scaling[selected_pts_mask].repeat(N,1)
-            stds = torch.cat([stds, 0 * torch.ones_like(stds[:,:1])], dim=-1)
-            means = torch.zeros_like(stds)
-            samples = torch.normal(mean=means, std=stds)
-            rots = build_rotation(self._rotation[selected_pts_mask]).repeat(N,1,1)
-            new_xyz = torch.bmm(rots, samples.unsqueeze(-1)).squeeze(-1) + self.get_xyz[selected_pts_mask].repeat(N, 1)
-            new_scaling = self.scaling_inverse_activation(self.get_scaling[selected_pts_mask].repeat(N,1) / (0.8*N))
-            new_rotation = self._rotation[selected_pts_mask].repeat(N,1)
-            new_features_dc = self._features_dc[selected_pts_mask].repeat(N,1,1)
-            new_features_rest = self._features_rest[selected_pts_mask].repeat(N,1,1)
-            new_opacity = self._opacity[selected_pts_mask].repeat(N,1)
-            new_curvature = self._curvature[selected_pts_mask].repeat(N,1)
-            prune_indices = selected_indices
-            total_new = selected_pts_mask.sum().item() * N
-        else:
-            # Counts-driven splitting logic
-            selected_counts = counts[selected_indices]
-            clone_counts = torch.clamp(selected_counts - 1, min=0)
-            total_new = int(clone_counts.sum().item())
-            
-            # When splitting, we prune the original parent points to replace them with scaled children
-            prune_indices = selected_indices 
+        # filter
+        selected_pts_mask = counts >= 2
 
-            if total_new > 0:
-                repeated_indices = selected_indices.repeat_interleave(clone_counts)
-                split_counts = selected_counts.repeat_interleave(clone_counts).unsqueeze(-1)
-                stds = self.get_scaling[repeated_indices]
-                stds = torch.cat([stds, torch.zeros_like(stds[:,:1])], dim=-1)
-                means = torch.zeros_like(stds)
-                samples = torch.normal(mean=means, std=stds)
-                rots = build_rotation(self._rotation[repeated_indices])
-                
-                new_xyz = torch.bmm(rots, samples.unsqueeze(-1)).squeeze(-1) + self.get_xyz[repeated_indices]
-                # Scale reduction is explicitly tied to the exact count value
-                new_scaling = self.scaling_inverse_activation(self.get_scaling[repeated_indices] / (0.8 * split_counts))
-                new_rotation = self._rotation[repeated_indices]
-                new_features_dc = self._features_dc[repeated_indices]
-                new_features_rest = self._features_rest[repeated_indices]
-                new_opacity = self._opacity[repeated_indices]
-                new_curvature = self._curvature[repeated_indices]
-            else:
-                new_xyz = self._xyz[:0]
-                new_features_dc = self._features_dc[:0]
-                new_features_rest = self._features_rest[:0]
-                new_opacity = self._opacity[:0]
-                new_scaling = self._scaling[:0]
-                new_rotation = self._rotation[:0]
-                new_curvature = self._curvature[:0]
-
-        self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation, new_curvature)
-
-        counts[prune_indices] = 0
-
-    def densify_and_clone_for_card(self, scene_extent, counts=None):
-        if counts is None:
-            curv = self._curvature.squeeze()
-            curv[torch.isnan(curv)] = 0.0
-            selected_pts_mask = curv >= 0.8
-        else:
-            counts = counts.to(self._xyz.device).to(torch.int64)
-            if counts.numel() < self._xyz.shape[0]:
-                padded_counts = torch.zeros(self._xyz.shape[0], dtype=torch.int64, device=self._xyz.device)
-                padded_counts[:counts.numel()] = counts
-                counts = padded_counts
-                
-            # Core modification: Clone candidates also filtered by counts >= 2
-            selected_pts_mask = counts >= 2
-
-        # For cloning, select points that are already small (<= percent_dense threshold)
         selected_pts_mask = torch.logical_and(
             selected_pts_mask,
             torch.max(self.get_scaling, dim=1).values <= self.percent_dense * scene_extent
@@ -545,60 +460,75 @@ class GaussianModel:
 
         selected_indices = selected_pts_mask.nonzero(as_tuple=False).squeeze(-1)
 
-        if counts is None:
-            new_xyz = self._xyz[selected_pts_mask]
-            new_features_dc = self._features_dc[selected_pts_mask]
-            new_features_rest = self._features_rest[selected_pts_mask]
-            new_opacities = self._opacity[selected_pts_mask]
-            new_scaling = self._scaling[selected_pts_mask]
-            new_rotation = self._rotation[selected_pts_mask]
-            new_curvature = self._curvature[selected_pts_mask]
+        if selected_indices.numel() == 0:
+            return
+
+        selected_counts = counts[selected_indices]
+
+        new_xyz_list = []
+
+        # 用 interpolation 取代 repeat_interleave
+        for idx, c in zip(selected_indices, selected_counts):
+            c = int(c.item())
+            if c <= 1:
+                continue
+
+            origin = self._xyz[idx]      # (3,)
+            ccenter = center[idx]        # (3,)
+
+            # ✔ 正確：產生 c-1 個內部點（不含 endpoints）
+            t = torch.linspace(0, 1, c + 1, device=device)[1:-1]  # (c-1,)
+            t = t.unsqueeze(1)  # (c-1, 1)
+
+            # linear interpolation
+            new_points = (1 - t) * origin + t * ccenter  # (c-1, 3)
+
+            new_xyz_list.append(new_points)
+
+        # merge geometry
+        if len(new_xyz_list) > 0:
+            new_xyz = torch.cat(new_xyz_list, dim=0)
+
+            # ⚠️ attribute 還是沿用 repeat（保持你原 pipeline）
+            repeated_indices = selected_indices.repeat_interleave(selected_counts - 1)
+
+            new_features_dc = self._features_dc[repeated_indices]
+            new_features_rest = self._features_rest[repeated_indices]
+            new_opacities = self._opacity[repeated_indices]
+            new_scaling = self._scaling[repeated_indices]
+            new_rotation = self._rotation[repeated_indices]
+            new_curvature = self._curvature[repeated_indices]
         else:
-            selected_counts = counts[selected_indices]
-            clone_counts = torch.clamp(selected_counts - 1, min=0)
-            total_new = int(clone_counts.sum().item())
+            new_xyz = self._xyz[:0]
+            new_features_dc = self._features_dc[:0]
+            new_features_rest = self._features_rest[:0]
+            new_opacities = self._opacity[:0]
+            new_scaling = self._scaling[:0]
+            new_rotation = self._rotation[:0]
+            new_curvature = self._curvature[:0]
 
-            if total_new > 0:
-                repeated_indices = selected_indices.repeat_interleave(clone_counts)
-                new_xyz = self._xyz[repeated_indices]
-                new_features_dc = self._features_dc[repeated_indices]
-                new_features_rest = self._features_rest[repeated_indices]
-                new_opacities = self._opacity[repeated_indices]
-                new_scaling = self._scaling[repeated_indices]
-                new_rotation = self._rotation[repeated_indices]
-                new_curvature = self._curvature[repeated_indices]
-            else:
-                new_xyz = self._xyz[:0]
-                new_features_dc = self._features_dc[:0]
-                new_features_rest = self._features_rest[:0]
-                new_opacities = self._opacity[:0]
-                new_scaling = self._scaling[:0]
-                new_rotation = self._rotation[:0]
-                new_curvature = self._curvature[:0]
+        self.densification_postfix(
+            new_xyz,
+            new_features_dc,
+            new_features_rest,
+            new_opacities,
+            new_scaling,
+            new_rotation,
+            new_curvature
+        )
+    
+    def card(self, center, counts=None):
+        self.densify_for_card(center ,counts=counts)
 
-        self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, new_curvature)
-   
-    def card(self, extent, counts=None):
-        self.densify_and_clone_for_card(extent, counts=counts)
-        self.densify_and_split_for_card(extent, counts=counts)
-
-        if counts is not None:
-            # Step 1: 確保 counts 在正確的裝置上並轉為 int64
-            counts = counts.to(self._xyz.device).to(torch.int64)
+        counts = counts.to(self._xyz.device).to(torch.int64)
             
-            # Step 2: 如果 counts 長度小於高斯點數量，用 1 填充
-            if counts.shape[0] < self._xyz.shape[0]:
-                pad_size = self._xyz.shape[0] - counts.shape[0]
-                padding = torch.ones(pad_size, dtype=torch.int64, device=self._xyz.device)
-                counts = torch.cat([counts, padding])  # ← cat 在這裡
-            # 如果 counts 長度大於高斯點數量，只取前 N 個
-            elif counts.shape[0] > self._xyz.shape[0]:
-                counts = counts[:self._xyz.shape[0]]
-            
-            # Step 3: counts == 0 的點剪枝
+        if counts.shape[0] < self._xyz.shape[0]:
+            pad_size = self._xyz.shape[0] - counts.shape[0]
+            padding = torch.ones(pad_size, dtype=torch.int64, device=self._xyz.device)
+            counts = torch.cat([counts, padding])  # ← cat 在這裡
+        elif counts.shape[0] > self._xyz.shape[0]:
+            counts = counts[:self._xyz.shape[0]]
             prune_mask = (counts == 0)
-        else:
-            prune_mask = (self._curvature <= 0.2).squeeze()
 
         self.prune_points(prune_mask)
         torch.cuda.empty_cache()

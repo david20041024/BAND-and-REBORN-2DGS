@@ -23,7 +23,7 @@ class GaussianModelProcessor:
 
         kd = KD(self.xyz, self.mesh_xyz, self.normal, self.gaussians.get_opacity ,max_size=512)
         self.count = kd.clone_count
-
+        self.center = kd.center
         
 
     # --------------------------------------------------

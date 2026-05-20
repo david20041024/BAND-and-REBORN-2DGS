@@ -40,7 +40,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         (model_params, first_iter) = torch.load(checkpoint, weights_only=False) # checkpoint
         gaussians.restore(model_params, opt)
     process = GaussianModelProcessor(gaussians, xyz_file)
-    gaussians.card(scene.cameras_extent, process.count)
+    gaussians.card(process.center, process.count)
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 
