@@ -41,7 +41,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gaussians.restore(model_params, opt)
     
     process = GaussianModelProcessor(gaussians, xyz_file)
-    gaussians.prune_outlier(process.prune_list)
+    # gaussians.prune_outlier(process.prune_list)
+    num_gaussians = len(gaussians.get_xyz)
+    bg_mask = torch.zeros(num_gaussians, dtype=torch.bool, device="cuda")
+    bg_mask[process.prune_list] = True
 
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
@@ -127,9 +130,24 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
                 
-                if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
-                    gaussians.reset_opacity()
+                # if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
+                    # size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+                    # gaussians.densify_and_prune(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold)
 
+                if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
+                    gaussians.reset_opacity(bg_mask)
+
+            with torch.no_grad():
+              # 凍結背景梯度
+              for param in [gaussians._xyz, gaussians._opacity,
+                            gaussians._scaling, gaussians._rotation,
+                            gaussians._features_dc, gaussians._features_rest]:
+                  if param.grad is not None:
+                      param.grad[bg_mask] = 0
+
+              # 凍結背景 densification
+              gaussians.max_radii2D[bg_mask] = 0
+              
             # Optimizer step
             if iteration < opt.iterations:
                 gaussians.optimizer.step()
@@ -254,8 +272,8 @@ if __name__ == "__main__":
     parser.add_argument('--ip', type=str, default="127.0.0.1")
     parser.add_argument('--port', type=int, default=6009)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
-    parser.add_argument("--test_iterations", nargs="+", type=int, default=[2_500, 5_000])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[2_500, 5_000])
+    parser.add_argument("--test_iterations", nargs="+", type=int, default=[2, 5_000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[2, 5_000])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)

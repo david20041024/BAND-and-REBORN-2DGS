@@ -6,7 +6,7 @@ class VOXEL:
         self,
         xyz: torch.Tensor,
         mesh: torch.Tensor,
-        expand=0.05
+        expand=0.1
     ):
         """
         xyz   : (N,3) gaussian points
