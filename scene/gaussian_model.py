@@ -513,19 +513,11 @@ class GaussianModel:
             new_curvature
         )
     
-    def card(self, center, counts=None):
-        self.densify_for_card(center ,counts=counts)
+    def prune_outlier(self, prune_list):
+        device = self._xyz.device
 
-        counts = counts.to(self._xyz.device).to(torch.int64)
-            
-        if counts.shape[0] < self._xyz.shape[0]:
-            pad_size = self._xyz.shape[0] - counts.shape[0]
-            padding = torch.ones(pad_size, dtype=torch.int64, device=self._xyz.device)
-            counts = torch.cat([counts, padding])  # ← cat 在這裡
-        elif counts.shape[0] > self._xyz.shape[0]:
-            counts = counts[:self._xyz.shape[0]]
-        
-        prune_mask = (counts == 0)
+        prune_mask = torch.zeros(self._xyz.shape[0], dtype=torch.bool, device=device)
+        prune_mask[prune_list] = True
 
         self.prune_points(prune_mask)
         torch.cuda.empty_cache()

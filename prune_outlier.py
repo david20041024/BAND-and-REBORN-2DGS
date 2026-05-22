@@ -22,7 +22,7 @@ import uuid
 from tqdm import tqdm
 from utils.image_utils import psnr, render_net_image
 from argparse import ArgumentParser, Namespace
-from arguments import ModelParams, PipelineParams, Optimization_for_redistribution_Params
+from arguments import ModelParams, PipelineParams, Optimization_for_prune_Params
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
@@ -39,8 +39,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     if checkpoint:
         (model_params, first_iter) = torch.load(checkpoint, weights_only=False) # checkpoint
         gaussians.restore(model_params, opt)
+    
     process = GaussianModelProcessor(gaussians, xyz_file)
-    gaussians.card(process.center, process.count)
+    gaussians.prune_outlier(process.prune_list)
+
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 

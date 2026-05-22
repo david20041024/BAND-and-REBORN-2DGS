@@ -94,7 +94,7 @@ class OptimizationParams(ParamGroup):
         self.densify_grad_threshold = 0.0002
         super().__init__(parser, "Optimization Parameters")
 
-class Optimization_for_redistribution_Params(ParamGroup):
+class Optimization_for_prune_Params(ParamGroup):
     def __init__(self, parser):
         self.iterations = 5_000
         self.position_lr_init = 0.00016
