@@ -17,8 +17,10 @@ class GaussianModelProcessor:
 
         if xyz_file is not None:
             self.load_xyz(xyz_file)
+        
+        self.gaussian_to_tensor()
 
-        voxel = VOXEL(self.xyz, self.mesh_xyz, voxel_size=0.004)
+        voxel = VOXEL(self.xyz, self.mesh_xyz, expand=5)
         self.prune_list = voxel.invalid_idx
         
 
@@ -37,4 +39,12 @@ class GaussianModelProcessor:
 
         self.mesh_xyz = torch.tensor(xyz, dtype=torch.float32, device=self.device)
 
+        return self
+
+    def gaussian_to_tensor(self):
+
+        if self.gaussians is None:
+            raise ValueError("GaussianModel is None, cannot calculate normal")
+
+        self.xyz = self.gaussians.get_xyz
         return self
