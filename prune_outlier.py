@@ -13,7 +13,7 @@ import os
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim
-from gaussian_renderer import render, network_gui
+from gaussian_renderer import render, render_background ,network_gui
 import sys
 from scene import Scene, GaussianModel
 from one_shot import GaussianModelProcessor
@@ -76,14 +76,14 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gt_image = viewpoint_cam.original_image.cuda()
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
-        
+        render_pkg_background = render_background(viewpoint_cam, gaussians, pipe, background, bg_mask)
         # regularization
         lambda_normal = opt.lambda_normal
         lambda_dist = opt.lambda_dist
 
-        rend_dist = render_pkg["rend_dist"]
-        rend_normal  = render_pkg['rend_normal']
-        surf_normal = render_pkg['surf_normal']
+        rend_dist = render_pkg_background["rend_dist"]
+        rend_normal  = render_pkg_background['rend_normal']
+        surf_normal = render_pkg_background['surf_normal']
         normal_error = (1 - (rend_normal * surf_normal).sum(dim=0))[None]
         normal_loss = lambda_normal * (normal_error).mean()
         dist_loss = lambda_dist * (rend_dist).mean()
@@ -136,18 +136,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity(bg_mask)
-
-            with torch.no_grad():
-              # 凍結背景梯度
-              for param in [gaussians._xyz, gaussians._opacity,
-                            gaussians._scaling, gaussians._rotation,
-                            gaussians._features_dc, gaussians._features_rest]:
-                  if param.grad is not None:
-                      param.grad[bg_mask] = 0
-
-              # 凍結背景 densification
-              gaussians.max_radii2D[bg_mask] = 0
               
+            with torch.no_grad():
+                for param in [gaussians._xyz,gaussians._scaling, gaussians._rotation]:
+                    if param.grad is not None:
+                        param.grad[bg_mask] = 0   # 幾何不動
+
             # Optimizer step
             if iteration < opt.iterations:
                 gaussians.optimizer.step()
