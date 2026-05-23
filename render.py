@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     train_dir = os.path.join(args.model_path, 'train', "ours_{}".format(scene.loaded_iter))
     test_dir = os.path.join(args.model_path, 'test', "ours_{}".format(scene.loaded_iter))
-    gaussExtractor = GaussianExtractor(gaussians, render_background, pipe, bg_color=bg_color, mask=bg_mask)    
+    gaussExtractor = GaussianExtractor(gaussians, render, render_background, pipe, bg_color=bg_color, mask=bg_mask)    
     
     if not args.skip_train:
         print("export training images ...")
