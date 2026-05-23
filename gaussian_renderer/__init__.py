@@ -235,12 +235,15 @@ def render_background(viewpoint_camera, pc : GaussianModel, pipe, bg_color : tor
     else:
         colors_precomp = override_color
     
+    masked_opacity = opacity.clone()
+    masked_opacity[mask] = 0
+
     rendered_image, radii, allmap = rasterizer(
         means3D = means3D,
         means2D = means2D,
         shs = shs,
         colors_precomp = colors_precomp,
-        opacities = opacity[~mask],
+        opacities = masked_opacity,
         scales = scales,
         rotations = rotations,
         cov3D_precomp = cov3D_precomp
