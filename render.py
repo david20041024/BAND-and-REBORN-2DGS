@@ -14,7 +14,7 @@ from scene import Scene
 import os
 from tqdm import tqdm
 from os import makedirs
-from gaussian_renderer import render
+from gaussian_renderer import render, render_background
 import torchvision
 from utils.general_utils import safe_state
 from argparse import ArgumentParser
@@ -22,6 +22,7 @@ from arguments import ModelParams, PipelineParams, get_combined_args
 from gaussian_renderer import GaussianModel
 from utils.mesh_utils import GaussianExtractor, to_cam_open3d, post_process_mesh
 from utils.render_utils import generate_path, create_videos
+from one_shot import GaussianModelProcessor
 
 import open3d as o3d
 
@@ -42,9 +43,9 @@ if __name__ == "__main__":
     parser.add_argument("--num_cluster", default=50, type=int, help='Mesh: number of connected clusters to export')
     parser.add_argument("--unbounded", action="store_true", help='Mesh: using unbounded mode for meshing')
     parser.add_argument("--mesh_res", default=1024, type=int, help='Mesh: resolution for unbounded mesh extraction')
+    parser.add_argument("--xyz_file", type=str, required=True, help="Path to xyz file for point cloud initialization")
     args = get_combined_args(parser)
     print("Rendering " + args.model_path)
-
 
     dataset, iteration, pipe = model.extract(args), args.iteration, pipeline.extract(args)
     gaussians = GaussianModel(dataset.sh_degree)
@@ -52,9 +53,14 @@ if __name__ == "__main__":
     bg_color = [1,1,1] if dataset.white_background else [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
     
+    process = GaussianModelProcessor(gaussians, args.xyz_file)
+    num_gaussians = len(gaussians.get_xyz)
+    bg_mask = torch.zeros(num_gaussians, dtype=torch.bool, device="cuda")
+    bg_mask[process.prune_list] = True
+
     train_dir = os.path.join(args.model_path, 'train', "ours_{}".format(scene.loaded_iter))
     test_dir = os.path.join(args.model_path, 'test', "ours_{}".format(scene.loaded_iter))
-    gaussExtractor = GaussianExtractor(gaussians, render, pipe, bg_color=bg_color)    
+    gaussExtractor = GaussianExtractor(gaussians, render_background, pipe, bg_color=bg_color, mask=bg_mask)    
     
     if not args.skip_train:
         print("export training images ...")

@@ -20,7 +20,7 @@ class GaussianModelProcessor:
         
         self.gaussian_to_tensor()
 
-        self.voxel = VOXEL(self.xyz, self.mesh_xyz, expand=0.1)
+        self.voxel = VOXEL(self.xyz, self.mesh_xyz, expand=0.2)
         self.prune_list = self.voxel.invalid_idx
         
 
@@ -49,9 +49,9 @@ class GaussianModelProcessor:
         self.xyz = self.gaussians.get_xyz
         return self
 
-    def update(self, xyz, mesh_xyz, expand=0.1):
+    def update(self, xyz, mesh_xyz, expand=0.2):
 
         self.voxel.update(xyz, mesh_xyz, expand)
         self.prune_list = self.voxel.invalid_idx
-        
+
         return self
