@@ -96,7 +96,7 @@ class OptimizationParams(ParamGroup):
 
 class Optimization_for_prune_Params(ParamGroup):
     def __init__(self, parser):
-        self.iterations = 5_000
+        self.iterations = 10_000
         self.position_lr_init = 0.00016
         self.position_lr_final = 0.0000016
         self.position_lr_delay_mult = 0.01
@@ -112,7 +112,7 @@ class Optimization_for_prune_Params(ParamGroup):
         self.opacity_cull = 0.05
 
         self.densification_interval = 100
-        self.opacity_reset_interval = 2500
+        self.opacity_reset_interval = 3000
         self.densify_from_iter = 500
         self.densify_until_iter = 5_000
         self.densify_grad_threshold = 0.0002

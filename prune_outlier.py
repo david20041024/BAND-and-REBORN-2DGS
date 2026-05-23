@@ -130,17 +130,25 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
                 
-                # if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
-                    # size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    # gaussians.densify_and_prune(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold)
-
+                if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
+                    size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+                    gaussians.densify_and_prune(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold)
+                    process.update(gaussians.get_xyz, process.mesh_xyz, expand=0.1)
+                    
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
-                    gaussians.reset_opacity(bg_mask)
+                    gaussians.reset_opacity()
               
             with torch.no_grad():
                 for param in [gaussians._xyz,gaussians._scaling, gaussians._rotation]:
                     if param.grad is not None:
                         param.grad[bg_mask] = 0   # 幾何不動
+            
+            if iteration < opt.densify_until_iter:
+                if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
+                    num_gaussians = len(gaussians.get_xyz)
+                    bg_mask = torch.zeros(num_gaussians, dtype=torch.bool, device="cuda")
+                    bg_mask[process.prune_list] = True
+
 
             # Optimizer step
             if iteration < opt.iterations:

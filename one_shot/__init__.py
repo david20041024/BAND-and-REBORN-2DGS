@@ -20,8 +20,8 @@ class GaussianModelProcessor:
         
         self.gaussian_to_tensor()
 
-        voxel = VOXEL(self.xyz, self.mesh_xyz, expand=0.1)
-        self.prune_list = voxel.invalid_idx
+        self.voxel = VOXEL(self.xyz, self.mesh_xyz, expand=0.1)
+        self.prune_list = self.voxel.invalid_idx
         
 
     # --------------------------------------------------
@@ -47,4 +47,11 @@ class GaussianModelProcessor:
             raise ValueError("GaussianModel is None, cannot calculate normal")
 
         self.xyz = self.gaussians.get_xyz
+        return self
+
+    def update(self, xyz, mesh_xyz, expand=0.1):
+
+        self.voxel.update(xyz, mesh_xyz, expand)
+        self.prune_list = self.voxel.invalid_idx
+        
         return self
