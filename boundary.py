@@ -40,7 +40,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         (model_params, first_iter) = torch.load(checkpoint, weights_only=False) # checkpoint
         gaussians.restore(model_params, opt)
     
-    process = GaussianModelProcessor(gaussians, xyz_mesh, xyz_nonboundary, expand=0.2, size=0.004)
+    process = GaussianModelProcessor(gaussians, xyz_mesh, xyz_nonboundary, expand=0.2, size=0.02)
     # gaussians.prune_outlier(process.prune_list)
     
 
@@ -74,14 +74,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gt_image = viewpoint_cam.original_image.cuda()
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
-        render_pkg_background = render_background(viewpoint_cam, gaussians, pipe, background, bg_mask)
         # regularization
         lambda_normal = opt.lambda_normal
         lambda_dist = opt.lambda_dist
 
-        rend_dist = render_pkg_background["rend_dist"]
-        rend_normal  = render_pkg_background['rend_normal']
-        surf_normal = render_pkg_background['surf_normal']
+        rend_dist = render_pkg["rend_dist"]
+        rend_normal  = render_pkg['rend_normal']
+        surf_normal = render_pkg['surf_normal']
         normal_error = (1 - (rend_normal * surf_normal).sum(dim=0))[None]
         normal_loss = lambda_normal * (normal_error).mean()
         dist_loss = lambda_dist * (rend_dist).mean()
@@ -129,13 +128,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
                 
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
-                    if iteration < 2000:
+                    if iteration <= 1500:
                         process.find_boundary_mask()
                         mask = process.mask
 
                         size_threshold = 20 if iteration > opt.opacity_reset_interval else None
                         gaussians.densify_and_prune_boundary(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold, mask)
-                    else:
+                    elif 2000 <= iteration:
                         size_threshold = 20 if iteration > opt.opacity_reset_interval else None
                         gaussians.densify_and_prune(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold)
                     
@@ -266,8 +265,8 @@ if __name__ == "__main__":
     parser.add_argument('--ip', type=str, default="127.0.0.1")
     parser.add_argument('--port', type=int, default=6009)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
-    parser.add_argument("--test_iterations", nargs="+", type=int, default=[2, 5_000])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[2, 5_000])
+    parser.add_argument("--test_iterations", nargs="+", type=int, default=[3_000, 5_000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[3_000, 5_000])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)

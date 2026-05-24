@@ -415,8 +415,9 @@ class GaussianModel:
         new_features_dc = self._features_dc[selected_pts_mask].repeat(N,1,1)
         new_features_rest = self._features_rest[selected_pts_mask].repeat(N,1,1)
         new_opacity = self._opacity[selected_pts_mask].repeat(N,1)
+        new_curvature = self._curvature[selected_pts_mask].repeat(N,1)
 
-        self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation)
+        self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation, new_curvature)
 
         prune_filter = torch.cat((selected_pts_mask, torch.zeros(N * selected_pts_mask.sum(), device="cuda", dtype=bool)))
         self.prune_points(prune_filter)
@@ -426,25 +427,23 @@ class GaussianModel:
         # Extract points that satisfy the gradient condition
         padded_grad = torch.zeros((n_init_points), device="cuda")
         padded_grad[:grads.shape[0]] = grads.squeeze()
-        
-        grad_norm = torch.norm(padded_grad, dim=-1)
 
-        grad_threshold = torch.full_like(
-            grad_norm,
+        mask_grad_threshold = torch.full_like(
+            padded_grad,
             grad_threshold
         )
         size_threshold = torch.full_like(
-            grad_norm,
+            padded_grad,
             self.percent_dense * scene_extent
         )
 
         if mask is not None:
-            grad_threshold[mask] = grad_threshold[mask] * 0.5
+            mask_grad_threshold[mask] = mask_grad_threshold[mask] * 0.5
             size_threshold[mask] = size_threshold[mask] * 2
 
-        selected_pts_mask = torch.where(padded_grad >= grad_threshold, True, False)
+        selected_pts_mask = torch.where(padded_grad >= mask_grad_threshold, True, False)
         selected_pts_mask = torch.logical_and(selected_pts_mask,
-                                              torch.max(self.get_scaling, dim=1).values > self.percent_dense*scene_extent)
+                                              torch.max(self.get_scaling, dim=1).values > size_threshold)
 
         stds = self.get_scaling[selected_pts_mask].repeat(N,1)
         stds = torch.cat([stds, 0 * torch.ones_like(stds[:,:1])], dim=-1)
@@ -460,7 +459,7 @@ class GaussianModel:
         new_curvature = self._curvature[selected_pts_mask].repeat(N,1)
 
         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation, new_curvature)
-
+        
         prune_filter = torch.cat((selected_pts_mask, torch.zeros(N * selected_pts_mask.sum(), device="cuda", dtype=bool)))
         return prune_filter
 
@@ -470,7 +469,7 @@ class GaussianModel:
         # Extract points that satisfy the gradient condition
         grad_norm = torch.norm(grads, dim=-1)
 
-        grad_threshold = torch.full_like(
+        mask_grad_threshold = torch.full_like(
             grad_norm,
             grad_threshold
         )
@@ -480,10 +479,10 @@ class GaussianModel:
         )
 
         if mask is not None:
-            grad_threshold[mask] = grad_threshold[mask] * 0.5
+            mask_grad_threshold[mask] = mask_grad_threshold[mask] * 0.5
             size_threshold[mask] = size_threshold[mask] * 2
 
-        selected_pts_mask = torch.where(torch.norm(grads, dim=-1) >= grad_threshold, True, False)
+        selected_pts_mask = torch.where(torch.norm(grads, dim=-1) >= mask_grad_threshold, True, False)
         selected_pts_mask = torch.logical_and(selected_pts_mask,
                                             torch.max(self.get_scaling, dim=1).values <= size_threshold)
         
@@ -503,19 +502,7 @@ class GaussianModel:
         grads[grads.isnan()] = 0.0
 
         self.densify_and_clone(grads, max_grad, extent)
-        prune_filter = self.densify_and_split(grads, max_grad, extent)
-
-        N = self.get_xyz.shape[0]
-        if mask.shape[0] < N:
-            pad = torch.zeros(
-                N - mask.shape[0],
-                dtype=torch.bool,
-                device=mask.device
-            )
-            mask = torch.cat([mask, pad], dim=0)
-        
-        min_opacity = torch.full_like(self.get_opacity, min_opacity)
-        min_opacity[mask] = min_opacity * 2
+        self.densify_and_split(grads, max_grad, extent)
 
         prune_mask = (self.get_opacity < min_opacity).squeeze()
 
@@ -524,10 +511,6 @@ class GaussianModel:
             big_points_ws = self.get_scaling.max(dim=1).values > 0.1 * extent
             prune_mask = torch.logical_or(torch.logical_or(prune_mask, big_points_vs), big_points_ws)
         
-        final_prune = torch.logical_or(
-            prune_mask,
-            prune_filter
-        )
         self.prune_points(prune_mask)
 
         torch.cuda.empty_cache()
@@ -537,14 +520,47 @@ class GaussianModel:
         grads[grads.isnan()] = 0.0
 
         self.densify_and_clone(grads, max_grad, extent, mask=mask)
-        self.densify_and_split_mask(grads, max_grad, extent, mask=mask)
 
-        prune_mask = (self.get_opacity < min_opacity).squeeze()
+        n_after = self.get_xyz.shape[0]
+        n_new = n_after - grads.shape[0]
+
+        # 新增的點 pad False（非邊界點）
+        if n_new > 0:
+            mask = torch.cat([
+                mask,
+                torch.zeros(n_new, device=mask.device, dtype=torch.bool)
+            ])
+
+        prune_filter = self.densify_and_split_mask(grads, max_grad, extent, mask=mask)
+
+        n_prune = self.get_xyz.shape[0]
+        n_new = n_prune - n_after
+
+        # 新增的點 pad False（非邊界點）
+        if n_new > 0:
+            mask = torch.cat([
+                mask,
+                torch.zeros(n_new, device=mask.device, dtype=torch.bool)
+            ])
+        mask_min_opacity = torch.full(
+            (self.get_xyz.shape[0],),
+            min_opacity,
+            device=self.get_xyz.device
+        )
+
+        mask_min_opacity[mask] = mask_min_opacity[mask] / 2.0
+
+        prune_mask = (self.get_opacity.squeeze(-1) < mask_min_opacity).squeeze()
         if max_screen_size:
             big_points_vs = self.max_radii2D > max_screen_size
             big_points_ws = self.get_scaling.max(dim=1).values > 0.1 * extent
             prune_mask = torch.logical_or(torch.logical_or(prune_mask, big_points_vs), big_points_ws)
-        self.prune_points(prune_mask)
+        
+        final_prune = torch.logical_or(
+            prune_mask,
+            prune_filter
+        )
+        self.prune_points(final_prune)
 
         torch.cuda.empty_cache()
 

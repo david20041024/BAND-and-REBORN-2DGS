@@ -4,7 +4,7 @@ from scene import Scene, GaussianModel
 from utils.general_utils import build_rotation
 from one_shot.voxel import VOXEL
 class GaussianModelProcessor:
-    def __init__(self, gaussian_model, xyz_mesh=None, xyz_nonboundary=None, expand=0.2, size=0.004):
+    def __init__(self, gaussian_model, xyz_mesh=None, xyz_nonboundary=None, expand=0.2, size=0.02):
         """
         gaussian_model: GaussianModel instance
         xyz_file: path to .xyz file (x y z nx ny nz)
@@ -46,7 +46,7 @@ class GaussianModelProcessor:
         return self
     
     def find_boundary_mask(self):
-        self.voxel.find_boundary()
+        self.voxel.find_boundary(self.gaussians)
         aim = self.voxel.aim
         num_gaussians = len(self.gaussians.get_xyz)
         bg_mask = torch.zeros(num_gaussians, dtype=torch.bool, device="cuda")
