@@ -112,7 +112,7 @@ class Optimization_for_boundary_Params(ParamGroup):
         self.opacity_cull = 0.05
 
         self.densification_interval = 100
-        self.opacity_reset_interval = 3_600
+        self.opacity_reset_interval = 3_100
         self.densify_from_iter = 0
         self.densify_until_iter = 4_000
         self.densify_grad_threshold = 0.0002
