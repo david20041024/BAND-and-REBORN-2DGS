@@ -22,14 +22,14 @@ import uuid
 from tqdm import tqdm
 from utils.image_utils import psnr, render_net_image
 from argparse import ArgumentParser, Namespace
-from arguments import ModelParams, PipelineParams, Optimization_for_prune_Params
+from arguments import ModelParams, PipelineParams, Optimization_for_boundary_Params
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
 except ImportError:
     TENSORBOARD_FOUND = False
 
-def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, sdf_path, xyz_file):
+def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, sdf_path, xyz_mesh, xyz_nonboundary):
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree)
     gaussians.active_sh_degree = 3
@@ -40,11 +40,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         (model_params, first_iter) = torch.load(checkpoint, weights_only=False) # checkpoint
         gaussians.restore(model_params, opt)
     
-    process = GaussianModelProcessor(gaussians, xyz_file)
+    process = GaussianModelProcessor(gaussians, xyz_mesh, xyz_nonboundary, expand=0.2, size=0.004)
     # gaussians.prune_outlier(process.prune_list)
-    num_gaussians = len(gaussians.get_xyz)
-    bg_mask = torch.zeros(num_gaussians, dtype=torch.bool, device="cuda")
-    bg_mask[process.prune_list] = True
+    
 
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
@@ -131,24 +129,18 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
                 
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
-                    size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify_and_prune(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold)
-                    process.update(gaussians.get_xyz, process.mesh_xyz, expand=0.1)
+                    if iteration < 2000:
+                        process.find_boundary_mask()
+                        mask = process.mask
+
+                        size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+                        gaussians.densify_and_prune_boundary(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold, mask)
+                    else:
+                        size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+                        gaussians.densify_and_prune(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold)
                     
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity()
-              
-            with torch.no_grad():
-                for param in [gaussians._xyz,gaussians._scaling, gaussians._rotation]:
-                    if param.grad is not None:
-                        param.grad[bg_mask] = 0   # 幾何不動
-            
-            if iteration < opt.densify_until_iter:
-                if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
-                    num_gaussians = len(gaussians.get_xyz)
-                    bg_mask = torch.zeros(num_gaussians, dtype=torch.bool, device="cuda")
-                    bg_mask[process.prune_list] = True
-
 
             # Optimizer step
             if iteration < opt.iterations:
@@ -269,7 +261,7 @@ if __name__ == "__main__":
     # Set up command line argument parser
     parser = ArgumentParser(description="Training script parameters")
     lp = ModelParams(parser)
-    op = Optimization_for_prune_Params(parser)
+    op = Optimization_for_boundary_Params(parser)
     pp = PipelineParams(parser)
     parser.add_argument('--ip', type=str, default="127.0.0.1")
     parser.add_argument('--port', type=int, default=6009)
@@ -280,7 +272,8 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)
     parser.add_argument("--sdf_path", type=str, required=True)
-    parser.add_argument("--xyz_file", type=str, required=True, help="Path to xyz file for point cloud initialization")
+    parser.add_argument("--xyz_mesh", type=str, required=True, help="Path to xyz file of mesh vertices")
+    parser.add_argument("--xyz_nonboundary", type=str, required=True, help="Path to xyz file of boundary points")
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
     
@@ -292,7 +285,7 @@ if __name__ == "__main__":
     # Start GUI server, configure and run training
     network_gui.init(args.ip, args.port)
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.sdf_path, args.xyz_file)
+    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.sdf_path, args.xyz_mesh, args.xyz_nonboundary)
 
     # All done
     print("\nTraining complete.")

@@ -32,8 +32,8 @@ if not args.skip_rendering:
     common_args = " --quiet --skip_train --depth_ratio 1.0 --num_cluster 1 --voxel_size 0.004 --sdf_trunc 0.016 --depth_trunc 3.0"
     for scene in dtu_scenes:
         source = args.dtu + "/" + scene
-        print("python render.py --iteration 30000 -s " + source + " -m" + args.output_path + "/" + scene + common_args + " --xyz_file /content/drive/MyDrive/scan55.xyz")
-        os.system("python render.py --iteration 30000 -s " + source + " -m" + args.output_path + "/" + scene + common_args + " --xyz_file /content/drive/MyDrive/scan55.xyz")
+        print("python render.py --iteration 30000 -s " + source + " -m" + args.output_path + "/" + scene + common_args)
+        os.system("python render.py --iteration 30000 -s " + source + " -m" + args.output_path + "/" + scene + common_args)
 
 
 if not args.skip_metrics:

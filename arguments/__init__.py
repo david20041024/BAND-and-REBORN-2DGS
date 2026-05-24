@@ -94,7 +94,7 @@ class OptimizationParams(ParamGroup):
         self.densify_grad_threshold = 0.0002
         super().__init__(parser, "Optimization Parameters")
 
-class Optimization_for_prune_Params(ParamGroup):
+class Optimization_for_boundary_Params(ParamGroup):
     def __init__(self, parser):
         self.iterations = 5_000
         self.position_lr_init = 0.00016
@@ -112,9 +112,9 @@ class Optimization_for_prune_Params(ParamGroup):
         self.opacity_cull = 0.05
 
         self.densification_interval = 100
-        self.opacity_reset_interval = 3000
-        self.densify_from_iter = 500
-        self.densify_until_iter = 5_000
+        self.opacity_reset_interval = 2_600
+        self.densify_from_iter = 0
+        self.densify_until_iter = 3_000
         self.densify_grad_threshold = 0.0002
         super().__init__(parser, "Optimization for redistribution Parameters")
 
