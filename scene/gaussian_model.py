@@ -438,8 +438,8 @@ class GaussianModel:
         )
 
         if mask is not None:
-            mask_grad_threshold[mask] = mask_grad_threshold[mask] * 0.5
-            size_threshold[mask] = size_threshold[mask] * 2
+            mask_grad_threshold[mask] = mask_grad_threshold[mask] * 0.8
+            size_threshold[mask] = size_threshold[mask] * 0.8
 
         selected_pts_mask = torch.where(padded_grad >= mask_grad_threshold, True, False)
         selected_pts_mask = torch.logical_and(selected_pts_mask,
@@ -459,7 +459,7 @@ class GaussianModel:
         new_curvature = self._curvature[selected_pts_mask].repeat(N,1)
 
         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation, new_curvature)
-        
+
         prune_filter = torch.cat((selected_pts_mask, torch.zeros(N * selected_pts_mask.sum(), device="cuda", dtype=bool)))
         return prune_filter
 
@@ -479,8 +479,8 @@ class GaussianModel:
         )
 
         if mask is not None:
-            mask_grad_threshold[mask] = mask_grad_threshold[mask] * 0.5
-            size_threshold[mask] = size_threshold[mask] * 2
+            mask_grad_threshold[mask] = mask_grad_threshold[mask] * 0.8
+            size_threshold[mask] = size_threshold[mask] * 0.8
 
         selected_pts_mask = torch.where(torch.norm(grads, dim=-1) >= mask_grad_threshold, True, False)
         selected_pts_mask = torch.logical_and(selected_pts_mask,
@@ -548,7 +548,7 @@ class GaussianModel:
             device=self.get_xyz.device
         )
 
-        mask_min_opacity[mask] = mask_min_opacity[mask] / 2.0
+        mask_min_opacity[mask] = mask_min_opacity[mask] / 1.2
 
         prune_mask = (self.get_opacity.squeeze(-1) < mask_min_opacity).squeeze()
         if max_screen_size:

@@ -96,7 +96,7 @@ class OptimizationParams(ParamGroup):
 
 class Optimization_for_boundary_Params(ParamGroup):
     def __init__(self, parser):
-        self.iterations = 5_000
+        self.iterations = 6_000
         self.position_lr_init = 0.00016
         self.position_lr_final = 0.0000016
         self.position_lr_delay_mult = 0.01
@@ -112,9 +112,9 @@ class Optimization_for_boundary_Params(ParamGroup):
         self.opacity_cull = 0.05
 
         self.densification_interval = 100
-        self.opacity_reset_interval = 2_600
+        self.opacity_reset_interval = 3_600
         self.densify_from_iter = 0
-        self.densify_until_iter = 3_000
+        self.densify_until_iter = 4_000
         self.densify_grad_threshold = 0.0002
         super().__init__(parser, "Optimization for redistribution Parameters")
 
