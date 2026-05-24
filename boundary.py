@@ -13,7 +13,7 @@ import os
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim
-from gaussian_renderer import render, render_background ,network_gui
+from gaussian_renderer import render ,network_gui
 import sys
 from scene import Scene, GaussianModel
 from one_shot import GaussianModelProcessor
