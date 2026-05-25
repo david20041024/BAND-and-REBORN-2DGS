@@ -439,7 +439,7 @@ class GaussianModel:
 
         if mask is not None:
             mask_grad_threshold[mask] = mask_grad_threshold[mask] * 0.8
-            size_threshold[mask] = size_threshold[mask] * 0.8
+            size_threshold[mask] = size_threshold[mask] * 1.2
 
         selected_pts_mask = torch.where(padded_grad >= mask_grad_threshold, True, False)
         selected_pts_mask = torch.logical_and(selected_pts_mask,
@@ -480,7 +480,7 @@ class GaussianModel:
 
         if mask is not None:
             mask_grad_threshold[mask] = mask_grad_threshold[mask] * 0.8
-            size_threshold[mask] = size_threshold[mask] * 0.8
+            size_threshold[mask] = size_threshold[mask] * 1.2
 
         selected_pts_mask = torch.where(torch.norm(grads, dim=-1) >= mask_grad_threshold, True, False)
         selected_pts_mask = torch.logical_and(selected_pts_mask,
