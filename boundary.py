@@ -132,10 +132,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                         process.find_boundary_mask()
                         mask = process.mask
 
-                        with torch.no_grad():
-                            m = mask[:gaussians._scaling.shape[0]]
-                            gaussians._scaling.data[m] += 0.3
-
                         size_threshold = 20 if iteration > opt.opacity_reset_interval else None
                         gaussians.densify_and_prune_boundary(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold, mask)
                     elif 2000 <= iteration:
