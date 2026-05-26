@@ -144,10 +144,10 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
     reading_dir = "images" if images == None else images
     cam_infos_unsorted = readColmapCameras(cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics, images_folder=os.path.join(path, reading_dir))
     cam_infos = sorted(cam_infos_unsorted.copy(), key = lambda x : x.image_name)
-
+    dtu_test_views = [0,5,11,19,28,38]
     if eval:
-        train_cam_infos = [c for idx, c in enumerate(cam_infos) if idx % llffhold != 0]
-        test_cam_infos = [c for idx, c in enumerate(cam_infos) if idx % llffhold == 0]
+        train_cam_infos = [c for idx, c in enumerate(cam_infos) if c.uid not in dtu_test_views]
+        test_cam_infos = [c for idx, c in enumerate(cam_infos) if c.uid in dtu_test_views]
     else:
         train_cam_infos = cam_infos
         test_cam_infos = []

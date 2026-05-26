@@ -55,7 +55,7 @@ def cull_scan(scan, mesh_path, result_mesh_file, instance_dir):
     vertices = mesh.vertices
 
     # project and filter
-    vertices = torch.from_numpy(vertices).cuda()
+    vertices = torch.from_numpy(vertices)
     vertices = torch.cat((vertices, torch.ones_like(vertices[:, :1])), dim=-1)
     vertices = vertices.permute(1, 0)
     vertices = vertices.float()
@@ -63,8 +63,8 @@ def cull_scan(scan, mesh_path, result_mesh_file, instance_dir):
     sampled_masks = []
     for i in tqdm(range(n_images),  desc="Culling mesh given masks"):
         pose = pose_all[i]
-        w2c = torch.inverse(pose).cuda()
-        intrinsic = intrinsics_all[i].cuda()
+        w2c = torch.inverse(pose)
+        intrinsic = intrinsics_all[i]
 
         with torch.no_grad():
             # transform and project
@@ -78,7 +78,7 @@ def cull_scan(scan, mesh_path, result_mesh_file, instance_dir):
             
             # dialate mask similar to unisurf
             maski = masks[i][:, :, 0].astype(np.float32) / 256.
-            maski = torch.from_numpy(binary_dilation(maski, disk(24))).float()[None, None].cuda()
+            maski = torch.from_numpy(binary_dilation(maski, disk(24))).float()[None, None]
 
             sampled_mask = F.grid_sample(maski, pix_coords[None, None], mode='nearest', padding_mode='zeros', align_corners=True)[0, -1, 0]
 
