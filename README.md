@@ -1,6 +1,6 @@
 # BOND-2DGS: Boundary Oriented Neural Densification for 2D Gaussian Splatting
 
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/david20041024/BAND-2DGS/blob/main/band.ipynb )
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/david20041024/BAND-2DGS/blob/main/band.ipynb)
 
 ## Tools
 
