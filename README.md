@@ -2,32 +2,12 @@
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/david20041024/BAND-2DGS/blob/main/band.ipynb )
 
-This repo contains the official implementation for the paper "2D Gaussian Splatting for Geometrically Accurate Radiance Fields". Our work represents a scene with a set of 2D oriented disks (surface elements) and rasterizes the surfels with [perspective correct differentiable raseterization](https://colab.research.google.com/drive/1qoclD7HJ3-o0O1R8cvV3PxLhoDCMsH8W?usp=sharing). Our work also develops regularizations that enhance the reconstruction quality. We also devise meshing approaches for Gaussian splatting.
-
-## 🎓 Community Resources & Tutorials
-
-- **gsplat library documentation** (official rasterization API reference)  
-  https://docs.gsplat.studio/main/apis/rasterization.html#id1
-
-- **GaussianSplats3D** – Popular WebGL/Three.js viewer with strong community support  
-  https://github.com/mkkellogg/GaussianSplats3D
+## Tools
 
 - **SuperSplat** – High-performance WebGPU viewer by PlayCanvas  
   https://github.com/playcanvas/supersplat
-
-- **In-Depth Practitioner Guide** – Comprehensive tutorial on the full 2D Gaussian Splatting pipeline (theory to implementation) by Shubham Anand  
-  [LearnOpenCV Blog Post](https://learnopencv.com/2d-gaussian-splatting/)
-
-- **Diff-Surfel-Tracing** - A differentiable ray-tracing implementation built on the surfel representation by [xbillowy](https://github.com/xbillowy)
-   https://github.com/xbillowy/diff-surfel-tracing
-
-## SIBR Viewer
-
-
-https://github.com/RongLiu-Leo/2d-gaussian-splatting/assets/102014841/b75dd9a7-e3ee-4666-99ff-8c9121ff66dc
-
-
-The Pre-built Viewer for Windows can be found [here](https://github.com/RongLiu-Leo/Gaussian-Splatting-Monitor/releases/download/v1.0/GS_Monitor.zip). If you use Ubuntu or want to check the viewer usage, please refer to [GS Monitor](https://github.com/RongLiu-Leo/Gaussian-Splatting-Monitor).
+- **MeshLab** -  The open source system for processing and editing 3D triangular meshes
+  https://www.meshlab.net/
 ### How to use
 Firstly open the viewer, 
 ```shell
