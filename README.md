@@ -4,38 +4,33 @@
 
 ## Tools
 
-- **SuperSplat** – High-performance WebGPU viewer by PlayCanvas  
-  https://github.com/playcanvas/supersplat
-- **MeshLab** -  The open source system for processing and editing 3D triangular meshes
-  https://www.meshlab.net/
-### How to use
-Firstly open the viewer, 
-```shell
-<path to downloaded/compiled viewer>/bin/SIBR_remoteGaussian_app_rwdi
-```
-and then
-```shell
-# Monitor the training process
-python train.py -s <path to COLMAP or NeRF Synthetic dataset> 
-# View the trained model
-python view.py -s <path to COLMAP or NeRF Synthetic dataset> -m <path to trained model> 
-```
+- **SuperSplat** – High-performance WebGPU viewer by PlayCanvas https://github.com/playcanvas/supersplat
+- **MeshLab** -  The open source system for processing and editing 3D triangular meshes https://www.meshlab.net/
 
 ## Installation
 
 ```bash
 # download
-git clone https://github.com/hbb1/2d-gaussian-splatting.git --recursive
+git clone https://github.com/david20041024/BAND-2DGS.git --recursive
 
 # if you have an environment used for 3dgs, use it
 # if not, create a new environment
 conda env create --file environment.yml
 conda activate surfel_splatting
 ```
-## Training
-To train a scene, simply use
+
+## DTU training, rendering, and evaluating
+To train origin version
 ```bash
-python train.py -s <path to COLMAP or NeRF Synthetic dataset>
+python scripts/dtu_eval.py --dtu <path to the preprocessed DTU dataset>  \
+     --DTU_Official <path to the official DTU dataset>
+```
+To use BAND-2DGS
+```bash
+python boundary.py -s <path to dtu>/<scanN> \
+      --start_checkpoint output/<scanN>/chkpnt30000.pth \
+      --xyz_mesh <path to $P$> \
+      --xyz_nonboundary <path to $P'$>
 ```
 Commandline arguments for regularizations
 ```bash

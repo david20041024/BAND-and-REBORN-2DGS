@@ -270,7 +270,7 @@ if __name__ == "__main__":
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)
-    parser.add_argument("--sdf_path", type=str, required=True)
+    parser.add_argument("--sdf_path", type=str, required=False)
     parser.add_argument("--xyz_mesh", type=str, required=True, help="Path to xyz file of mesh vertices")
     parser.add_argument("--xyz_nonboundary", type=str, required=True, help="Path to xyz file of boundary points")
     args = parser.parse_args(sys.argv[1:])
