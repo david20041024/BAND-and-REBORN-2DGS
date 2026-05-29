@@ -1,7 +1,7 @@
 import os
 from argparse import ArgumentParser
 
-dtu_scenes = ['scan55']
+dtu_scenes = ['scan24','scan37'	,'scan40','scan55','scan63','scan65','scan69']
 
 parser = ArgumentParser(description="Full evaluation script parameters")
 parser.add_argument("--skip_training", action="store_true")
