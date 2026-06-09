@@ -42,7 +42,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     
     process = GaussianModelProcessor(gaussians, xyz_mesh, xyz_nonboundary, expand=0.2, size=0.02)
     # gaussians.prune_outlier(process.prune_list)
-    
+    process.find_boundary_mask()
+    mask = process.mask
+    gaussians.prune_points(mask)
 
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
@@ -126,20 +128,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if iteration < opt.densify_until_iter:
                 gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
-                
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
-                    if iteration <= 1500:
-                        process.find_boundary_mask()
-                        mask = process.mask
-
-                        size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                        gaussians.densify_and_prune_boundary(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold, mask)
-                    elif 2000 <= iteration:
-                        size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                        gaussians.densify_and_prune(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold)
-                    
-                if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
-                    gaussians.reset_opacity()
+                  size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+                  gaussians.densify_and_prune(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold)
+               
 
             # Optimizer step
             if iteration < opt.iterations:
@@ -265,8 +257,8 @@ if __name__ == "__main__":
     parser.add_argument('--ip', type=str, default="127.0.0.1")
     parser.add_argument('--port', type=int, default=6009)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
-    parser.add_argument("--test_iterations", nargs="+", type=int, default=[2, 6_000])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[2, 6_000])
+    parser.add_argument("--test_iterations", nargs="+", type=int, default=[1500, 10000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[1500, 10000])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)
