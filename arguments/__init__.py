@@ -96,15 +96,15 @@ class OptimizationParams(ParamGroup):
 
 class Optimization_for_boundary_Params(ParamGroup):
     def __init__(self, parser):
-        self.iterations = 6_000
-        self.position_lr_init = 0.00016
-        self.position_lr_final = 0.0000016
+        self.iterations = 8_000
+        self.position_lr_init = 0.00016 * 0.1
+        self.position_lr_final = 0.0000016 * 0.1
         self.position_lr_delay_mult = 0.01
-        self.position_lr_max_steps = 10_000
-        self.feature_lr = 0.0025
-        self.opacity_lr = 0.05
-        self.scaling_lr = 0.005
-        self.rotation_lr = 0.001
+        self.position_lr_max_steps = 10000
+        self.feature_lr = 0.0025 * 0.1
+        self.opacity_lr = 0.05 * 0.1
+        self.scaling_lr = 0.005 * 0.1
+        self.rotation_lr = 0.001 * 0.1
         self.percent_dense = 0.01
         self.lambda_dssim = 0.2
         self.lambda_dist = 0.0
