@@ -1,6 +1,6 @@
-# BOND-2DGS: Boundary Oriented Neural Densification for 2D Gaussian Splatting
+# BAND-2DGS and REBORN-2DGS
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/david20041024/BAND-2DGS/blob/main/band.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/david20041024/BAND-and-REBORN-2DGS/blob/main/band.ipynb)
 
 ## Tools
 
@@ -11,7 +11,7 @@
 
 ```bash
 # download
-git clone https://github.com/david20041024/BAND-2DGS.git --recursive
+git clone https://github.com/david20041024/BAND-and-REBORN-2DGS.git --recursive
 
 # if you have an environment used for 3dgs, use it
 # if not, create a new environment
@@ -39,10 +39,3 @@ python boundary.py -s <path to dtu>/<scanN> \
 python scripts/dtu_eval.py --dtu <path to the preprocessed DTU dataset>  \
      --DTU_Official <path to the official DTU dataset> --skip_training
 ```
-### result
-Chamfer distance on DTU dataset (lower is better)
-
-|   | 24   | 37   | 40   | 55   | 63   | 65   | 69   | 83   | 97   | 105  | 106  | 110  | 114  | 118  | 122  | Mean |
-|----------|------|------|------|------|------|------|------|------|------|------|------|------|------|------|------|------|
-| Origin    | 0.48 | 0.91 | 0.39 | 0.39 | 1.01 | 0.83 | 0.81 | 1.36 | 1.27 | 0.76 | 0.70 | 1.40 | 0.40 | 0.76 | 0.52 | 0.80 |
-| BAND-2DGS | 0.46 | 0.80 | 0.33 | 0.37 | 0.95 | 0.86 | 0.80 | 1.25 | 1.24 | 0.67 | 0.67 | 1.24 | 0.39 | 0.64 | 0.47 | 0.74 |
