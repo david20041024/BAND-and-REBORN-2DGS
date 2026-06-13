@@ -1,5 +1,5 @@
 # BAND-2DGS and REBORN-2DGS
-
+We use Colab T4 GPU to conduct our methods.
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/david20041024/BAND-and-REBORN-2DGS/blob/main/band.ipynb)
 
 ## Tools
